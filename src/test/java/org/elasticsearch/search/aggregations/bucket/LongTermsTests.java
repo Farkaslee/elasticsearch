@@ -77,15 +77,31 @@ public class LongTermsTests extends ElasticsearchIntegrationTest {
                     .field(SINGLE_VALUED_FIELD_NAME, i)
                     .startArray(MULTI_VALUED_FIELD_NAME).value(i).value(i + 1).endArray()
                     .endObject());
-                    
+
         }
         indexRandom(true, highCardBuilders);
         createIndex("idx_unmapped");
         ensureSearchable();
     }
-    
+
     private String key(Terms.Bucket bucket) {
         return randomBoolean() ? bucket.getKey() : key(bucket);
+    }
+
+    @Test
+    public void scripts() throws Exception {
+        script_SingleValue();
+        script_MultiValued();
+        script_SingleValue_WithSubAggregator_Inherited();
+        script_MultiValued_WithAggregatorInherited_WithExplicitType();
+    }
+
+    @Test
+    public void valueScripts() throws Exception {
+        singleValuedField_WithValueScript();
+        multiValuedField_WithValueScript();
+        multiValuedField_WithValueScript_NotUnique();
+        multiValuedField_WithValueScript_WithInheritedSubAggregator();
     }
 
     @Test
@@ -108,6 +124,12 @@ public class LongTermsTests extends ElasticsearchIntegrationTest {
 
     @Test
     public void singleValueField() throws Exception {
+        singleValueField_OrderedDefault();
+        singleValueField_OrderedByTermAsc();
+        singleValueField_OrderedByTermDesc();
+    }
+
+    private void singleValueField_OrderedDefault() throws Exception {
         SearchResponse response = client().prepareSearch("idx").setTypes("type")
                 .addAggregation(terms("terms")
                         .field(SINGLE_VALUED_FIELD_NAME))
@@ -156,8 +178,7 @@ public class LongTermsTests extends ElasticsearchIntegrationTest {
         }
     }
 
-    @Test
-    public void singleValueField_OrderedByTermAsc() throws Exception {
+    private void singleValueField_OrderedByTermAsc() throws Exception {
         SearchResponse response = client().prepareSearch("idx").setTypes("type")
                 .addAggregation(terms("terms")
                         .field(SINGLE_VALUED_FIELD_NAME)
@@ -180,8 +201,7 @@ public class LongTermsTests extends ElasticsearchIntegrationTest {
         }
     }
 
-    @Test
-    public void singleValueField_OrderedByTermDesc() throws Exception {
+    private void singleValueField_OrderedByTermDesc() throws Exception {
         SearchResponse response = client().prepareSearch("idx").setTypes("type")
                 .addAggregation(terms("terms")
                         .field(SINGLE_VALUED_FIELD_NAME)
@@ -262,8 +282,7 @@ public class LongTermsTests extends ElasticsearchIntegrationTest {
         }
     }
 
-    @Test
-    public void singleValuedField_WithValueScript() throws Exception {
+    private void singleValuedField_WithValueScript() throws Exception {
         SearchResponse response = client().prepareSearch("idx").setTypes("type")
                 .addAggregation(terms("terms")
                         .field(SINGLE_VALUED_FIELD_NAME)
@@ -315,8 +334,7 @@ public class LongTermsTests extends ElasticsearchIntegrationTest {
         }
     }
 
-    @Test
-    public void multiValuedField_WithValueScript() throws Exception {
+    private void multiValuedField_WithValueScript() throws Exception {
         SearchResponse response = client().prepareSearch("idx").setTypes("type")
                 .addAggregation(terms("terms")
                         .field(MULTI_VALUED_FIELD_NAME)
@@ -344,8 +362,7 @@ public class LongTermsTests extends ElasticsearchIntegrationTest {
         }
     }
 
-    @Test
-    public void multiValuedField_WithValueScript_NotUnique() throws Exception {
+    private void multiValuedField_WithValueScript_NotUnique() throws Exception {
         SearchResponse response = client().prepareSearch("idx").setTypes("type")
                 .addAggregation(terms("terms")
                         .field(MULTI_VALUED_FIELD_NAME)
@@ -384,8 +401,7 @@ public class LongTermsTests extends ElasticsearchIntegrationTest {
 
     */
 
-    @Test
-    public void multiValuedField_WithValueScript_WithInheritedSubAggregator() throws Exception {
+    private void multiValuedField_WithValueScript_WithInheritedSubAggregator() throws Exception {
         SearchResponse response = client().prepareSearch("idx").setTypes("type")
                 .addAggregation(terms("terms")
                         .field(MULTI_VALUED_FIELD_NAME)
@@ -421,8 +437,7 @@ public class LongTermsTests extends ElasticsearchIntegrationTest {
         }
     }
 
-    @Test
-    public void script_SingleValue() throws Exception {
+    private void script_SingleValue() throws Exception {
         SearchResponse response = client().prepareSearch("idx").setTypes("type")
                 .addAggregation(terms("terms")
                         .script("doc['" + SINGLE_VALUED_FIELD_NAME + "'].value"))
@@ -445,8 +460,7 @@ public class LongTermsTests extends ElasticsearchIntegrationTest {
         }
     }
 
-    @Test
-    public void script_SingleValue_WithSubAggregator_Inherited() throws Exception {
+    private void script_SingleValue_WithSubAggregator_Inherited() throws Exception {
         SearchResponse response = client().prepareSearch("idx").setTypes("type")
                 .addAggregation(terms("terms")
                         .field(SINGLE_VALUED_FIELD_NAME)
@@ -473,8 +487,7 @@ public class LongTermsTests extends ElasticsearchIntegrationTest {
         }
     }
 
-    @Test
-    public void script_MultiValued() throws Exception {
+    private void script_MultiValued() throws Exception {
         SearchResponse response = client().prepareSearch("idx").setTypes("type")
                 .addAggregation(terms("terms")
                         .script("doc['" + MULTI_VALUED_FIELD_NAME + "'].values"))
@@ -522,8 +535,7 @@ public class LongTermsTests extends ElasticsearchIntegrationTest {
         }
     }
 
-    @Test
-    public void script_MultiValued_WithAggregatorInherited_WithExplicitType() throws Exception {
+    private void script_MultiValued_WithAggregatorInherited_WithExplicitType() throws Exception {
         SearchResponse response = client().prepareSearch("idx").setTypes("type")
                 .addAggregation(terms("terms")
                         .script("doc['" + MULTI_VALUED_FIELD_NAME + "'].values")
@@ -631,7 +643,17 @@ public class LongTermsTests extends ElasticsearchIntegrationTest {
     }
 
     @Test
-    public void singleValuedField_OrderedBySingleValueSubAggregationAsc() throws Exception {
+    public void singleValuedField_OrderedBySubAggregation() throws Exception {
+        singleValuedField_OrderedBySingleValueSubAggregationAsc();
+        singleValuedField_OrderedBySingleBucketSubAggregationAsc();
+        singleValuedField_OrderedBySubAggregationAsc_MultiHierarchyLevels();
+        singleValuedField_OrderedBySingleValueSubAggregationDesc();
+        singleValuedField_OrderedByMultiValueSubAggregationAsc();
+        singleValuedField_OrderedByMultiValueSubAggregationDesc();
+        singleValuedField_OrderedByMultiValueExtendedStatsAsc();
+    }
+
+    private void singleValuedField_OrderedBySingleValueSubAggregationAsc() throws Exception {
         boolean asc = true;
         SearchResponse response = client().prepareSearch("idx").setTypes("type")
                 .addAggregation(terms("terms")
@@ -659,8 +681,7 @@ public class LongTermsTests extends ElasticsearchIntegrationTest {
         }
     }
 
-    @Test
-    public void singleValuedField_OrderedBySingleBucketSubAggregationAsc() throws Exception {
+    private void singleValuedField_OrderedBySingleBucketSubAggregationAsc() throws Exception {
         boolean asc = randomBoolean();
         SearchResponse response = client().prepareSearch("idx").setTypes("type")
                 .addAggregation(terms("num_tags")
@@ -696,8 +717,7 @@ public class LongTermsTests extends ElasticsearchIntegrationTest {
         assertThat(filter.getDocCount(), equalTo(asc ? 3l : 2l));
     }
 
-    @Test
-    public void singleValuedField_OrderedBySubAggregationAsc_MultiHierarchyLevels() throws Exception {
+    private void singleValuedField_OrderedBySubAggregationAsc_MultiHierarchyLevels() throws Exception {
         boolean asc = randomBoolean();
         SearchResponse response = client().prepareSearch("idx").setTypes("type")
                 .addAggregation(terms("tags")
@@ -751,11 +771,10 @@ public class LongTermsTests extends ElasticsearchIntegrationTest {
     }
 
     @Test
-    public void singleValuedField_OrderedByMissingSubAggregation() throws Exception {
-
+    public void illegalOrderBy() throws Exception {
         MockBigArrays.discardNextCheck();
-        try {
 
+        try {
             client().prepareSearch("idx").setTypes("type")
                     .addAggregation(terms("terms")
                             .field(SINGLE_VALUED_FIELD_NAME)
@@ -767,32 +786,7 @@ public class LongTermsTests extends ElasticsearchIntegrationTest {
         } catch (ElasticsearchException e) {
             // expected
         }
-    }
 
-    @Test
-    public void singleValuedField_OrderedByNonMetricsOrMultiBucketSubAggregation() throws Exception {
-
-        MockBigArrays.discardNextCheck();
-        try {
-
-            client().prepareSearch("idx").setTypes("type")
-                    .addAggregation(terms("terms")
-                            .field(SINGLE_VALUED_FIELD_NAME)
-                            .order(Terms.Order.aggregation("num_tags", true))
-                            .subAggregation(terms("num_tags").field("num_tags"))
-                    ).execute().actionGet();
-
-            fail("Expected search to fail when trying to sort terms aggregation by sug-aggregation which is not of a metrics type");
-
-        } catch (ElasticsearchException e) {
-            // expected
-        }
-    }
-
-    @Test
-    public void singleValuedField_OrderedByMultiValuedSubAggregation_WithUknownMetric() throws Exception {
-
-        MockBigArrays.discardNextCheck();
         try {
 
             client().prepareSearch("idx").setTypes("type")
@@ -808,12 +802,7 @@ public class LongTermsTests extends ElasticsearchIntegrationTest {
         } catch (ElasticsearchException e) {
             // expected
         }
-    }
 
-    @Test
-    public void singleValuedField_OrderedByMultiValuedSubAggregation_WithoutMetric() throws Exception {
-
-        MockBigArrays.discardNextCheck();
         try {
 
             client().prepareSearch("idx").setTypes("type")
@@ -831,8 +820,7 @@ public class LongTermsTests extends ElasticsearchIntegrationTest {
         }
     }
 
-    @Test
-    public void singleValuedField_OrderedBySingleValueSubAggregationDesc() throws Exception {
+    private void singleValuedField_OrderedBySingleValueSubAggregationDesc() throws Exception {
         boolean asc = false;
         SearchResponse response = client().prepareSearch("idx").setTypes("type")
                 .addAggregation(terms("terms")
@@ -863,8 +851,7 @@ public class LongTermsTests extends ElasticsearchIntegrationTest {
 
     }
 
-    @Test
-    public void singleValuedField_OrderedByMultiValueSubAggregationAsc() throws Exception {
+    private void singleValuedField_OrderedByMultiValueSubAggregationAsc() throws Exception {
         boolean asc = true;
         SearchResponse response = client().prepareSearch("idx").setTypes("type")
                 .addAggregation(terms("terms")
@@ -893,8 +880,7 @@ public class LongTermsTests extends ElasticsearchIntegrationTest {
 
     }
 
-    @Test
-    public void singleValuedField_OrderedByMultiValueSubAggregationDesc() throws Exception {
+    private void singleValuedField_OrderedByMultiValueSubAggregationDesc() throws Exception {
         boolean asc = false;
         SearchResponse response = client().prepareSearch("idx").setTypes("type")
                 .addAggregation(terms("terms")
@@ -923,8 +909,7 @@ public class LongTermsTests extends ElasticsearchIntegrationTest {
 
     }
 
-    @Test
-    public void singleValuedField_OrderedByMultiValueExtendedStatsAsc() throws Exception {
+    private void singleValuedField_OrderedByMultiValueExtendedStatsAsc() throws Exception {
         boolean asc = true;
         SearchResponse response = client().prepareSearch("idx").setTypes("type")
                 .addAggregation(terms("terms")

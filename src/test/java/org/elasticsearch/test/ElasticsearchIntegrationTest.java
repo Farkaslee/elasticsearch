@@ -148,6 +148,12 @@ public abstract class ElasticsearchIntegrationTest extends ElasticsearchTestCase
      * Threshold at which indexing switches from frequently async to frequently bulk.
      */
     private static final int FREQUENT_BULK_THRESHOLD = 300;
+
+    /**
+     * Threshold at which bulk indexing will always be used.
+     */
+    private static final int ALWAYS_BULK_THRESHOLD = 3000;
+
     /**
      * Maximum number of async operations that indexRandom will kick off at one time.
      */
@@ -659,7 +665,7 @@ public abstract class ElasticsearchIntegrationTest extends ElasticsearchTestCase
         final CopyOnWriteArrayList<Tuple<IndexRequestBuilder, Throwable>> errors = new CopyOnWriteArrayList<>();
         List<CountDownLatch> inFlightAsyncOperations = new ArrayList<>();
         // If you are indexing just a few documents then frequently do it one at a time.  If many then frequently in bulk.
-        if (builders.size() < FREQUENT_BULK_THRESHOLD ? frequently() : rarely()) {
+        if (builders.size() < FREQUENT_BULK_THRESHOLD ? frequently() : builders.size() < ALWAYS_BULK_THRESHOLD ? rarely() : false) {
             if (frequently()) {
                 logger.info("Index [{}] docs async: [{}] bulk: [{}]", builders.size(), true, false);
                 for (IndexRequestBuilder indexRequestBuilder : builders) {
